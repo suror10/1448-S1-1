@@ -1,15 +1,70 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzhkKFRRc8EiKj3CMVxVahwWmciyVNDCU4DrjSbDEIGCXVqlCOvHvHGjSaGO7gAAAY2fw/exec";
+
 let allWeeksData = []; 
 let currentWeekNumber = 1;
 
+// 1. عند تحميل الصفحة، جلب الأسماء وتعبئة القائمة المنسدلة
 window.addEventListener('load', () => {
-  const lastSearched = localStorage.getItem('lastSearchName');
-  if (lastSearched) {
-    document.getElementById('searchInput').value = lastSearched;
-    handleSearch();
-  }
+  loadStudentNames();
 });
 
+async function loadStudentNames() {
+  const select = document.getElementById('searchInput');
+  
+  // التحقق من حالة الإنترنت أولاً
+  if (!navigator.onLine) {
+    loadNamesFromCache();
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}?action=getNames`);
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      // حفظ الأسماء في الذاكرة المحلية للعمل دون إنترنت
+      localStorage.setItem('allStudentNames', JSON.stringify(result.names));
+      populateSelect(result.names);
+    } else {
+      select.innerHTML = '<option value="">❌ حدث خطأ في جلب الأسماء</option>';
+    }
+  } catch (error) {
+    console.error(error);
+    loadNamesFromCache(); 
+  }
+}
+
+// دالة لاستدعاء الأسماء من الذاكرة المحلية
+function loadNamesFromCache() {
+  const cachedNames = localStorage.getItem('allStudentNames');
+  const select = document.getElementById('searchInput');
+  if (cachedNames) {
+    populateSelect(JSON.parse(cachedNames));
+  } else {
+    select.innerHTML = '<option value="">❌ لا يوجد اتصال بالإنترنت</option>';
+  }
+}
+
+// دالة لتعبئة القائمة المنسدلة واستعادة آخر بحث
+function populateSelect(names) {
+  const select = document.getElementById('searchInput');
+  select.innerHTML = '<option value="">اختر اسم الطالب...</option>';
+  
+  names.forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.innerText = name;
+    select.appendChild(option);
+  });
+
+  const lastSearched = localStorage.getItem('lastSearchName');
+  if (lastSearched && names.includes(lastSearched)) {
+    select.value = lastSearched;
+    handleSearch(); 
+  }
+}
+
+// 2. مراقبة حالة الإنترنت والتنبيهات
 window.addEventListener('offline', () => {
   const badge = document.getElementById('networkBadge');
   badge.className = 'network-badge offline';
@@ -23,17 +78,17 @@ window.addEventListener('online', () => {
   
   setTimeout(() => { badge.style.display = 'none'; }, 3000);
 
-  if (document.getElementById('searchInput').value.trim() !== '') {
+  const nameInput = document.getElementById('searchInput').value;
+  if (nameInput !== '') {
     handleSearch();
+  } else {
+    loadStudentNames();
   }
 });
 
-document.getElementById('searchInput').addEventListener('keypress', function (e) {
-  if (e.key === 'Enter') handleSearch();
-});
-
+// 3. دالة البحث الرئيسية واستخراج بيانات الأسابيع
 async function handleSearch() {
-  const nameInput = document.getElementById('searchInput').value.trim();
+  const nameInput = document.getElementById('searchInput').value;
   const statusDiv = document.getElementById('statusMessage');
   const weeksContainer = document.getElementById('weeksContainer');
   const filterContainer = document.getElementById('filterContainer');
@@ -43,10 +98,11 @@ async function handleSearch() {
 
   if (!nameInput) {
     statusDiv.className = 'status-message error';
-    statusDiv.innerText = '⚠️ الرجاء كتابة اسم للبحث عنه';
+    statusDiv.innerText = '⚠️ الرجاء اختيار اسم للبحث عنه';
     return;
   }
 
+  // حفظ الاسم كآخر بحث
   localStorage.setItem('lastSearchName', nameInput);
 
   if (!navigator.onLine) {
@@ -68,6 +124,7 @@ async function handleSearch() {
       allWeeksData = result.weeks;
       currentWeekNumber = result.currentWeekNum;
 
+      // حفظ بيانات الطالب كاملة أوفلاين
       localStorage.setItem(`studentData_${nameInput}`, JSON.stringify(result));
 
       populateWeekSelect(result.weeks, currentWeekNumber);
@@ -83,6 +140,7 @@ async function handleSearch() {
   }
 }
 
+// دالة جلب بيانات الطالب من الذاكرة المحلية
 function loadFromLocalStorage(nameInput, statusDiv, filterContainer) {
   const cachedData = localStorage.getItem(`studentData_${nameInput}`);
   
@@ -103,6 +161,7 @@ function loadFromLocalStorage(nameInput, statusDiv, filterContainer) {
   }
 }
 
+// تعبئة قائمة التصفية بالأسابيع المتاحة
 function populateWeekSelect(weeks, currentWeek) {
   const select = document.getElementById('weekSelect');
   select.innerHTML = '<option value="all">عرض جميع الأسابيع</option>';
@@ -117,6 +176,7 @@ function populateWeekSelect(weeks, currentWeek) {
   select.value = currentWeek;
 }
 
+// تصفية العرض بناءً على الأسبوع المختار
 function filterWeeks() {
   const selectedValue = document.getElementById('weekSelect').value;
   
@@ -128,6 +188,7 @@ function filterWeeks() {
   }
 }
 
+// رسم كروت الأسابيع في واجهة المستخدم
 function renderWeeks(weeks) {
   const container = document.getElementById('weeksContainer');
   container.innerHTML = '';
