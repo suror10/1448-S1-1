@@ -17,7 +17,9 @@
     <div id="networkBadge" class="network-badge" style="display: none;"></div>
 
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="اكتب اسم الطالب هنا..." autocomplete="off">
+      <select id="searchInput" onchange="if(this.value !== '') handleSearch()">
+        <option value="">⏳ جاري تحميل الأسماء...</option>
+      </select>
       <button id="searchBtn" onclick="handleSearch()">بحث 🔍</button>
     </div>
 
