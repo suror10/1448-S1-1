@@ -3,7 +3,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzhkKFRRc8EiKj3CMVxVahw
 let allWeeksData = []; 
 let currentWeekNumber = 1;
 
-// 1. عند تحميل الصفحة، جلب الأسماء وتعبئة القائمة المنسدلة
+
 window.addEventListener('load', () => {
   loadStudentNames();
 });
@@ -11,7 +11,7 @@ window.addEventListener('load', () => {
 async function loadStudentNames() {
   const select = document.getElementById('searchInput');
   
-  // التحقق من حالة الإنترنت أولاً
+
   if (!navigator.onLine) {
     loadNamesFromCache();
     return;
@@ -22,7 +22,7 @@ async function loadStudentNames() {
     const result = await response.json();
     
     if (result.status === 'success') {
-      // حفظ الأسماء في الذاكرة المحلية للعمل دون إنترنت
+
       localStorage.setItem('allStudentNames', JSON.stringify(result.names));
       populateSelect(result.names);
     } else {
@@ -34,7 +34,7 @@ async function loadStudentNames() {
   }
 }
 
-// دالة لاستدعاء الأسماء من الذاكرة المحلية
+
 function loadNamesFromCache() {
   const cachedNames = localStorage.getItem('allStudentNames');
   const select = document.getElementById('searchInput');
@@ -45,7 +45,7 @@ function loadNamesFromCache() {
   }
 }
 
-// دالة لتعبئة القائمة المنسدلة واستعادة آخر بحث
+
 function populateSelect(names) {
   const select = document.getElementById('searchInput');
   select.innerHTML = '<option value="">اختر اسم الطالب...</option>';
@@ -64,7 +64,7 @@ function populateSelect(names) {
   }
 }
 
-// 2. مراقبة حالة الإنترنت والتنبيهات
+
 window.addEventListener('offline', () => {
   const badge = document.getElementById('networkBadge');
   badge.className = 'network-badge offline';
@@ -86,7 +86,7 @@ window.addEventListener('online', () => {
   }
 });
 
-// 3. دالة البحث الرئيسية واستخراج بيانات الأسابيع
+
 async function handleSearch() {
   const nameInput = document.getElementById('searchInput').value;
   const statusDiv = document.getElementById('statusMessage');
@@ -102,7 +102,7 @@ async function handleSearch() {
     return;
   }
 
-  // حفظ الاسم كآخر بحث
+
   localStorage.setItem('lastSearchName', nameInput);
 
   if (!navigator.onLine) {
@@ -124,7 +124,7 @@ async function handleSearch() {
       allWeeksData = result.weeks;
       currentWeekNumber = result.currentWeekNum;
 
-      // حفظ بيانات الطالب كاملة أوفلاين
+
       localStorage.setItem(`studentData_${nameInput}`, JSON.stringify(result));
 
       populateWeekSelect(result.weeks, currentWeekNumber);
@@ -140,7 +140,7 @@ async function handleSearch() {
   }
 }
 
-// دالة جلب بيانات الطالب من الذاكرة المحلية
+
 function loadFromLocalStorage(nameInput, statusDiv, filterContainer) {
   const cachedData = localStorage.getItem(`studentData_${nameInput}`);
   
@@ -161,7 +161,7 @@ function loadFromLocalStorage(nameInput, statusDiv, filterContainer) {
   }
 }
 
-// تعبئة قائمة التصفية بالأسابيع المتاحة
+
 function populateWeekSelect(weeks, currentWeek) {
   const select = document.getElementById('weekSelect');
   select.innerHTML = '<option value="all">عرض جميع الأسابيع</option>';
@@ -176,7 +176,7 @@ function populateWeekSelect(weeks, currentWeek) {
   select.value = currentWeek;
 }
 
-// تصفية العرض بناءً على الأسبوع المختار
+
 function filterWeeks() {
   const selectedValue = document.getElementById('weekSelect').value;
   
@@ -188,7 +188,7 @@ function filterWeeks() {
   }
 }
 
-// رسم كروت الأسابيع في واجهة المستخدم
+
 function renderWeeks(weeks) {
   const container = document.getElementById('weeksContainer');
   container.innerHTML = '';
