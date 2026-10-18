@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>مسابقة اقرأ وارتق | بوابة الطالب</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Tajawal', sans-serif; background-color: #060c0a; }
+    .gold-glow { text-shadow: 0 0 16px rgba(245, 158, 11, 0.45); }
+    .emerald-glow { filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4)); }
+    .level-card { transition: all 0.25s ease-out; }
+    .level-active { box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); border-color: #10b981; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen selection:bg-emerald-500 selection:text-black">
+
+
+  <div id="loadingOverlay" class="fixed inset-0 bg-[#060c0a] z-50 flex flex-col items-center justify-center p-4">
+    <div class="w-14 h-14 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+    <p id="loadingMsg" class="text-sm font-bold text-emerald-400">جاري التحقق من الجلسة وتحديث البيانات...</p>
+  </div>
+
+
+  <div id="loginSection" class="min-h-screen hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900/90 border border-emerald-900/40 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl backdrop-blur-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl border border-emerald-500/20 shadow-inner">
+          🏆
+        </div>
+        <h1 class="text-2xl font-black text-white tracking-tight">مسابقة اقرأ وارتق</h1>
+        <p class="text-xs text-emerald-400/80 mt-1 font-medium">سجل دخولك لمتابعة ارتقاء مستواك وإنجازاتك</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">اسم الطالب</label>
+          <select id="studentSelect" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+            <option value="">جاري جلب الأسماء من الحلقة...</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5">كلمة المرور</label>
+          <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور الخاصة بك" 
+                 class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+        </div>
+
+        <p id="loginError" class="text-xs text-rose-400 hidden text-center font-bold"></p>
+
+        <button onclick="handleLogin()" id="loginBtn" class="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-emerald-950/50 transition active:scale-[0.98]">
+          دخول إلى مسار التحدي
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="dashboardSection" class="hidden min-h-screen p-4 sm:p-6 max-w-xl mx-auto pb-12">
+    
+
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-900/40 rounded-3xl p-5 shadow-2xl mb-4">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-3">
+        <div>
+          <span class="text-[11px] text-emerald-400 font-bold uppercase tracking-wider">مرحباً بك 🌟</span>
+          <h2 id="dispName" class="text-lg font-black text-white"></h2>
+        </div>
+        <button onclick="logout()" class="text-xs bg-slate-800/80 hover:bg-rose-950/60 hover:text-rose-400 px-3 py-1.5 rounded-xl text-slate-400 transition">
+          تسجيل خروج
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-center">
+        <div class="bg-slate-800/40 rounded-2xl p-3 border border-slate-700/30">
+          <span class="text-[11px] text-slate-400 block mb-0.5">الرتبة الحالية</span>
+          <span id="dispLevelText" class="text-base font-black text-emerald-400"></span>
+        </div>
+        <div class="bg-slate-800/40 rounded-2xl p-3 border border-slate-700/30">
+          <span class="text-[11px] text-slate-400 block mb-0.5">النقاط الكلية المستمرة</span>
+          <span id="dispPoints" class="text-base font-black text-amber-400 gold-glow"></span>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-5 shadow-2xl mb-4 relative overflow-hidden">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+            <span>📈</span>
+            <span>منحنى الارتقاء بالمسابقة</span>
+          </h3>
+          <p class="text-[11px] text-slate-400">يبدأ المنحنى من المستوى 1 حتى رتبتك المحققة</p>
+        </div>
+
+        <div class="text-right">
+          <span class="text-[10px] text-emerald-400 font-bold block">المستوى</span>
+          <span id="animatedLevelCounter" class="text-2xl font-black text-white font-mono">1</span>
+        </div>
+      </div>
+
+
+      <div class="w-full h-48 relative">
+        <canvas id="levelChart"></canvas>
+      </div>
+    </div>
+
+
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl mb-6">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-lg">🎯</span>
+        <h3 class="font-bold text-white text-sm">متطلبات الانتقال للمستوى القادم</h3>
+      </div>
+      
+      <div class="bg-slate-800/70 border border-slate-700/70 rounded-2xl p-3.5 mb-3">
+        <p id="dispStatusText" class="text-xs sm:text-sm font-medium text-emerald-300 leading-relaxed"></p>
+      </div>
+
+
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="bg-slate-800/40 p-2.5 rounded-xl border border-slate-700/30">
+          <span class="text-slate-400 block text-[10px] mb-0.5">أيام اكتمال البنود</span>
+          <span id="dispNetDays" class="font-extrabold text-white text-sm">0</span>
+        </div>
+        <div class="bg-slate-800/40 p-2.5 rounded-xl border border-slate-700/30">
+          <span class="text-slate-400 block text-[10px] mb-0.5">مرات ممتاز</span>
+          <span id="dispNetMumtaz" class="font-extrabold text-white text-sm">0</span>
+        </div>
+        <div class="bg-slate-800/40 p-2.5 rounded-xl border border-slate-700/30">
+          <span class="text-slate-400 block text-[10px] mb-0.5">أيام الوتر</span>
+          <span id="dispNetWitr" class="font-extrabold text-white text-sm">0</span>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="mb-4">
+      <h3 class="text-sm font-bold text-slate-300 mb-3 flex items-center gap-2">
+        <span>🧗‍♂️</span>
+        <span>سلّم المراتب (من المستوى 1 إلى العاشر)</span>
+      </h3>
+      <div id="levelsPath" class="space-y-2.5"></div>
+    </div>
+
+  </div>
+
+  <script>
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKQq_-kmc3HwgJ0glzhBM0lpSqwVPKrIpY8LjRF3VACNyPP-zRWYSHGQKkZsK8JoDX/exec";
+
+    let chartInstance = null;
+
+    const levelsGuide = [
+      { id: 1, name: "المستوى الأول", pts: 300, cond: "تحقيق جميع البنود لمدة يومين" },
+      { id: 2, name: "المستوى الثاني", pts: 500, cond: "تحقيق جميع البنود يومين + 1 ممتاز" },
+      { id: 3, name: "المستوى الثالث", pts: 750, cond: "تحقيق 1 ممتاز + 4 أيام وتر" },
+      { id: 4, name: "المستوى الرابع", pts: 1100, cond: "4 أيام وتر + 3 أيام مسموع" },
+      { id: 5, name: "المستوى الخامس", pts: 1500, cond: "3 أيام مسموع + تحقيق 2 ممتاز" },
+      { id: 6, name: "المستوى السادس", pts: 2000, cond: "2 ممتاز متتالية + 10 أحاديث + مبادرة" },
+      { id: 7, name: "المستوى السابع", pts: 2500, cond: "يومين متتالية بنود + دبل + 10 أحاديث + مبادرة" },
+      { id: 8, name: "المستوى الثامن", pts: 3000, cond: "3 أيام متتالية بنود + 10 أحاديث + مبادرة" },
+      { id: 9, name: "المستوى التاسع", pts: 3400, cond: "المحافظة على البنود + 4 ممتاز + دبل + أحاديث + مبادرة" },
+      { id: 10, name: "المستوى العاشر 👑", pts: 0, cond: "تحدي الأسبوع: 2 ممتاز + 2 دبل + 3 أيام بنود كاملة خلال 7 أيام" }
+    ];
+
+    window.onload = function() {
+
+      const savedSession = localStorage.getItem('quran_student_session');
+
+      if (savedSession) {
+        try {
+          const creds = JSON.parse(savedSession);
+          fetch(`${SCRIPT_URL}?action=login&name=${encodeURIComponent(creds.name)}&pass=${encodeURIComponent(creds.pass)}`)
+            .then(res => res.json())
+            .then(res => {
+              if (res.success) {
+                hideLoading();
+                renderDashboard(res.data);
+              } else {
+                localStorage.removeItem('quran_student_session');
+                loadStudentsListAndShowLogin();
+              }
+            })
+            .catch(() => {
+              hideLoading();
+              loadStudentsListAndShowLogin();
+            });
+          return;
+        } catch (e) {
+          localStorage.removeItem('quran_student_session');
+        }
+      }
+
+      loadStudentsListAndShowLogin();
+    };
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+
+    function loadStudentsListAndShowLogin() {
+      hideLoading();
+      const loginSec = document.getElementById('loginSection');
+      loginSec.classList.remove('hidden');
+      loginSec.classList.add('flex');
+
+      fetch(`${SCRIPT_URL}?action=getStudents`)
+        .then(res => res.json())
+        .then(res => {
+          const sel = document.getElementById('studentSelect');
+          sel.innerHTML = '<option value="">-- اضغط لاختيار اسمك --</option>';
+          if (res.success && res.students) {
+            res.students.forEach(name => {
+              const opt = document.createElement('option');
+              opt.value = name;
+              opt.textContent = name;
+              sel.appendChild(opt);
+            });
+          }
+        })
+        .catch(() => {
+          document.getElementById('studentSelect').innerHTML = '<option>تأكد من وضع رابط SCRIPT_URL بشكل صحيح</option>';
+        });
+    }
+
+    function handleLogin() {
+      const name = document.getElementById('studentSelect').value;
+      const pass = document.getElementById('passwordInput').value;
+      const btn = document.getElementById('loginBtn');
+      const err = document.getElementById('loginError');
+
+      if (!name) {
+        showError('يرجى اختيار اسمك أولاً');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'جاري التحقق...';
+      err.classList.add('hidden');
+
+      fetch(`${SCRIPT_URL}?action=login&name=${encodeURIComponent(name)}&pass=${encodeURIComponent(pass)}`)
+        .then(res => res.json())
+        .then(res => {
+          btn.disabled = false;
+          btn.innerText = 'دخول إلى مسار التحدي';
+          if (res.success) {
+            localStorage.setItem('quran_student_session', JSON.stringify({ name: name, pass: pass }));
+            renderDashboard(res.data);
+          } else {
+            showError(res.message);
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.innerText = 'دخول إلى مسار التحدي';
+          showError('تعذر الاتصال بالنظام، يرجى التحقق من الرابط والاتصال.');
+        });
+    }
+
+    function showError(msg) {
+      const err = document.getElementById('loginError');
+      err.innerText = msg;
+      err.classList.remove('hidden');
+    }
+
+    function renderDashboard(user) {
+      const loginSec = document.getElementById('loginSection');
+      loginSec.classList.add('hidden');
+      loginSec.classList.remove('flex');
+
+      document.getElementById('dashboardSection').classList.remove('hidden');
+
+      document.getElementById('dispName').innerText = user.name;
+      document.getElementById('dispLevelText').innerText = user.levelName;
+      document.getElementById('dispPoints').innerText = user.totalPoints;
+      document.getElementById('dispStatusText').innerText = user.statusText;
+
+      document.getElementById('dispNetDays').innerText = user.netDays;
+      document.getElementById('dispNetMumtaz').innerText = user.netMumtaz;
+      document.getElementById('dispNetWitr').innerText = user.netWitr;
+
+      drawAnimatedRisingChart(user.level);
+
+      renderLevelsList(user.level);
+    }
+
+    function drawAnimatedRisingChart(targetLevel) {
+      const ctx = document.getElementById('levelChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
+      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+      const labels = ['البداية', 'المستوى 1', 'المستوى 2', 'المستوى 3', 'المستوى 4', 'المستوى 5', 'المستوى 6', 'المستوى 7', 'المستوى 8', 'المستوى 9', 'المستوى 10'];
+      
+      const chartData = [0];
+      for (let i = 1; i <= 10; i++) {
+        if (i <= targetLevel) {
+          chartData.push(i);
+        } else {
+          chartData.push(null);
+        }
+      }
+
+      const pointRadii = chartData.map((val, idx) => (idx === targetLevel ? 8 : (val !== null && idx > 0 ? 3 : 0)));
+      const pointBg = chartData.map((val, idx) => (idx === targetLevel ? '#34d399' : '#10b981'));
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: chartData,
+            borderColor: '#10b981',
+            borderWidth: 3,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.35,
+            pointRadius: pointRadii,
+            pointBackgroundColor: pointBg,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: chartData.map((val, idx) => (idx === targetLevel ? 2 : 0)),
+            spanGaps: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `أنت في: المستوى ${ctx.parsed.y}`
+              }
+            }
+          },
+          animation: {
+            duration: 2000,
+            easing: 'easeOutQuart',
+            onProgress: function(animation) {
+              const progress = animation.currentStep / animation.numSteps;
+              const currentAnimatedVal = Math.max(1, Math.round(progress * targetLevel));
+              document.getElementById('animatedLevelCounter').innerText = currentAnimatedVal;
+            },
+            onComplete: function() {
+              document.getElementById('animatedLevelCounter').innerText = targetLevel;
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748b', font: { size: 10, family: 'Tajawal' } }
+            },
+            y: {
+              min: 0,
+              max: 10,
+              ticks: { stepSize: 2, color: '#64748b', font: { size: 10, family: 'Tajawal' } },
+              grid: { color: 'rgba(51, 65, 85, 0.25)' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderLevelsList(currentLvl) {
+      const container = document.getElementById('levelsPath');
+      container.innerHTML = '';
+
+      for (let i = levelsGuide.length; i >= 1; i--) {
+        const lvl = levelsGuide[i - 1];
+        const isCurrent = (currentLvl === lvl.id);
+        const isCompleted = (currentLvl > lvl.id);
+
+        let cardClass = "bg-slate-900/60 border-slate-800 text-slate-500 opacity-60";
+        let badge = '<span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500">🔒 مقفل</span>';
+
+        if (isCurrent) {
+          cardClass = "bg-emerald-950/40 border-emerald-500 border-2 text-white level-active scale-[1.01]";
+          badge = '<span class="text-[10px] bg-emerald-500 text-slate-950 font-bold px-2 py-0.5 rounded animate-pulse">مستواك الحالي 📍</span>';
+        } else if (isCompleted) {
+          cardClass = "bg-slate-900 border-emerald-900/60 text-emerald-400";
+          badge = '<span class="text-[10px] bg-emerald-900/40 text-emerald-300 px-2 py-0.5 rounded">✓ مكتمل</span>';
+        }
+
+        const ptsText = lvl.pts > 0 ? `${lvl.pts} نقطة` : 'تحدي زمني';
+
+        const row = document.createElement('div');
+        row.className = `level-card border rounded-2xl p-3 flex items-center justify-between ${cardClass}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${isCurrent ? 'bg-emerald-500 text-slate-950' : (isCompleted ? 'bg-emerald-900/50 text-emerald-400' : 'bg-slate-800 text-slate-500')}">
+              ${lvl.id}
+            </div>
+            <div>
+              <h4 class="font-bold text-xs sm:text-sm ${isCurrent ? 'text-white' : ''}">${lvl.name}</h4>
+              <p class="text-[11px] text-slate-400 line-clamp-1">${lvl.cond}</p>
+            </div>
+          </div>
+          <div class="text-left flex flex-col items-end gap-1">
+            ${badge}
+            <span class="text-[10px] text-slate-400">${ptsText}</span>
+          </div>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('quran_student_session');
+      document.getElementById('dashboardSection').classList.add('hidden');
+      document.getElementById('passwordInput').value = '';
+      loadStudentsListAndShowLogin();
+    }
+  </script>
+</body>
+</html>
